@@ -21,7 +21,7 @@ class IrActionsPrint(models.Model):
 
     _inherit = 'ir.actions.server'
 
-    state = fields.Selection(selection_add=[('print', 'Print')])
+    state = fields.Selection(selection_add=[('print', 'Print')], ondelete={'print':'set default'})
 
     # A print action must be configured with a print strategy model. The print
     # strategies to execute for an object are selected from that model.
@@ -33,17 +33,16 @@ class IrActionsPrint(models.Model):
         'Print Strategy must be set',
     )]
 
-    @api.multi
-    def run_action_print(self, action, eval_context=None): # pylint: disable=unused-argument
+    def _run_action_print(self, eval_context=None): # pylint: disable=unused-argument
         """Print a report using the print strategies for the context object."""
         # get the context object
-        context = action.env.context
+        context = self.env.context
         if 'skip_printing' in context and context['skip_printing']:
             _logger.info('Skipping printing due to context switch')
             return False
         active_model = context['active_model']
         active_id = context['active_id']
-        obj = action.env[active_model].browse(active_id)
+        obj = self.env[active_model].browse(active_id)
         # execute strategies for printing the object
         for strategy in self.env[self.strategy_id.model].strategies(obj):
             if not strategy.enabled():
@@ -56,7 +55,7 @@ class IrActionsPrint(models.Model):
             if records is not None:
                 _logger.info(
                     'executing %s action with strategy %s for %s id %d',
-                    action.state, strategy.name,
+                    self.state, strategy.name,
                     active_model, active_id)
                 printer.spool_report(records.ids, report)
 
@@ -67,6 +66,8 @@ class PrintStrategy(models.Model):
        specified report on the specified printer.
     """
     _name = 'print.strategy'
+
+    _description = 'Print strategy'
 
     name = fields.Char(required=True)
 
@@ -105,7 +106,6 @@ class PrintStrategy(models.Model):
             ('model', '=', obj._name),
         ])
 
-    @api.multi
     def enabled(self):
         """Return True if a print strategy is enabled, False otherwise."""
         self.ensure_one()
@@ -122,7 +122,6 @@ class PrintStrategy(models.Model):
                 return False
         return True
 
-    @api.multi
     def records(self, obj, context=None):
         """Return the records to render for context `obj`
 
