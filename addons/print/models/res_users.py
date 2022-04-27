@@ -24,7 +24,6 @@ class User(models.Model):
         # If multiple printers are found, return the first one
         return printer[:1]
 
-    @api.multi
     @api.constrains('printer_ids')
     def _check_printer_ids(self):
         """Constrain user to having one default printer per group, for each report type"""

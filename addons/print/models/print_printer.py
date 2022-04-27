@@ -26,9 +26,8 @@ class Printer(models.Model):
     _name = 'print.printer'
     _description = 'Printer'
     _parent_name = 'group_id'
-    _order = 'parent_left, name'
+    _order = 'parent_path, name'
     _parent_store = True
-    _parent_order = 'name'
     _rec_name = 'full_name'
 
     name = fields.Char(string="Name", index=True, required=True)
@@ -53,8 +52,7 @@ class Printer(models.Model):
                                domain=[('is_group', '=', True)])
     child_ids = fields.One2many('print.printer', 'group_id',
                                 string="Grouped Printers")
-    parent_left = fields.Integer(string="Left parent", index=True)
-    parent_right = fields.Integer(string="Right parent", index=True)
+    parent_path = fields.Char(index=True)
 
     _sql_constraints = [
         ('barcode_uniq', 'unique (barcode)', "The Barcode must be unique"),
@@ -66,7 +64,6 @@ class Printer(models.Model):
          "There must be only one System Default Printer per group"),
     ]
 
-    @api.multi
     @api.depends('name', 'group_id.full_name')
     def _compute_full_name(self):
         """Calculate full name (including group name(s))"""
@@ -78,13 +75,11 @@ class Printer(models.Model):
             else:
                 printer.full_name = printer.name
 
-    @api.multi
     def _compute_is_user_default(self):
         """Calculate user default flag"""
         for printer in self:
             printer.is_user_default = printer in self.env.user.printer_ids
 
-    @api.multi
     @api.constrains('is_group', 'group_id', 'child_ids')
     def _check_groups(self):
         """Constrain group existence"""
@@ -95,8 +90,13 @@ class Printer(models.Model):
             if printer.child_ids and not printer.is_group:
                 raise ValidationError(_("%s is not a printer group") %
                                       printer.name)
+    
+    @api.model
+    def set_default_printer(self):
+        has_default = self.search([('is_default', '=', True)])
+        if not has_default:
+            self.env.ref('print.default_printer').is_default = True
 
-    @api.multi
     def printers(self, report_type=None, raise_if_not_found=False):
         """Determine printers to use"""
         if self:
@@ -141,7 +141,6 @@ class Printer(models.Model):
 
         return printers
 
-    @api.multi
     def _spool_lpr(self, document, title=None, copies=1):
         """Spool document to printer via lpr"""
         lpr_exec = _find_lpr_exec()
@@ -166,7 +165,6 @@ class Printer(models.Model):
                 raise UserError(_("lpr failed (error code: %s). Message: %s") %
                                 (str(lpr.returncode), output))
 
-    @api.multi
     def spool(self, document, title=None, copies=1):
         """Spool document to printer"""
 
@@ -177,7 +175,6 @@ class Printer(models.Model):
             raise UserError(_("Cannot print on OS: %s" % os.name))
         return True
 
-    @api.multi
     def spool_report(self, docids, report_name, data=None, title=None, copies=1):
         """Spool report to printer"""
         # pylint: disable=too-many-arguments, too-many-locals
@@ -193,6 +190,7 @@ class Printer(models.Model):
             name = report_name
             Report = self.env["ir.actions.report"]
             reports = Report._get_report_from_name(name)
+            reports = reports.with_context(force_report_rendering = True)
             if not reports:
                 reports = self.env.ref(name, raise_if_not_found=False)
             if not reports:
@@ -234,7 +232,7 @@ class Printer(models.Model):
         documents = {
             x.report_type: (
                 ("%s %s" % (x.name, str(docids))) if title is None else title,
-                x.render(docids, cpcl_data if x.report_type == "qweb-cpcl" else data)[0],
+                x._render(docids, cpcl_data if x.report_type == "qweb-cpcl" else data)[0],
             )
             for x in reports
         }
@@ -255,7 +253,6 @@ class Printer(models.Model):
             ('report_name', '=like', 'print.%'),
         ])
 
-    @api.multi
     def spool_test_page(self):
         """Print test page"""
         for printer in self.printers(raise_if_not_found=True):
@@ -263,19 +260,16 @@ class Printer(models.Model):
                                  title="Test page")
         return True
 
-    @api.multi
     def clear_user_default(self):
         """Clear as user default printer"""
         self.env.user.printer_ids -= self
         return {'type': 'ir.actions.client', 'tag': 'reload'}
 
-    @api.multi
     def clear_system_default(self):
         """Clear as system default printer"""
         self.write({'is_default': False})
         return {'type': 'ir.actions.client', 'tag': 'reload'}
-
-    @api.multi
+    
     def set_user_default(self):
         """Set as user default printer (within group, if applicable)"""
         self.ensure_one()
@@ -285,7 +279,6 @@ class Printer(models.Model):
         self.env.user.printer_ids += self
         return {'type': 'ir.actions.client', 'tag': 'reload'}
 
-    @api.multi
     def set_system_default(self):
         """Set as system default printer (within group, if applicable)"""
         self.ensure_one()

@@ -29,6 +29,6 @@ Key Features
         'views/print_printer_views.xml',
         'views/print_strategy_views.xml',
         'data/print_printer_data.xml',
-        'data/set_default_printer.yml'
+        'data/set_default_printer.xml'
     ],
 }

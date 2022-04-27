@@ -11,16 +11,15 @@ from lxml import etree
 from odoo.modules.module import get_resource_from_path, get_resource_path
 from odoo.tools import config, mute_logger
 from odoo.tools.mimetypes import guess_mimetype
-from odoo.tests import common
+from odoo.tests import common, tagged
 
 MOCK_LPR = 'MOCK_LPR'
-HTML_MIMETYPE = guess_mimetype(b'<html><body></body></html>')
+HTML_MIMETYPE = guess_mimetype(b'\n      \n        \n        <!DOCTYPE html>')
 XML_MIMETYPE = guess_mimetype(b'<?xml version="1.0"/>')
 PDF_MIMETYPE = 'application/pdf'
 
 
-@common.at_install(False)
-@common.post_install(True)
+@tagged("-at_install", "post_install")
 class PrinterCase(common.SavepointCase):
     """Base test case for printing"""
 
@@ -32,6 +31,9 @@ class PrinterCase(common.SavepointCase):
         cls.printer_default = cls.env.ref('print.default_printer')
         cls.printer_default.queue = None
         cls.printer_default.set_system_default()
+
+        # Set the context variable to true so that ir.actions.report.render_qweb_pdf() actually attempt to generate a pdf
+        cls.printer_default = cls.printer_default.with_context(force_report_rendering = True)
 
         # Locate test file directory corresponding to the class (which
         # may be a derived class in a different module).
@@ -75,16 +77,10 @@ class PrinterCase(common.SavepointCase):
         # when tests are run via the "-f" command-line option) to
         # prevent ir.actions.report from committing the assets bundle
         # and hence releasing the savepoint.
-        #
-        # Create mock test_report_directory to ensure that
-        # ir.actions.report.render_qweb_pdf() will actually attempt to
-        # generate a PDF
-        #
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
         patch_config = patch.dict(config.options, {
             'test_enable': True,
-            'test_report_directory': self.tempdir.name,
         })
         patch_config.start()
         self.addCleanup(patch_config.stop)
@@ -131,8 +127,7 @@ class PrinterCase(common.SavepointCase):
             self.maxDiff = maxDiff
 
 
-@common.at_install(False)
-@common.post_install(True)
+@tagged("-at_install", "post_install")
 class PrinterHttpCase(common.HttpCase):
     """Base HTTP test case for printing"""
 
