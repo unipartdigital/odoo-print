@@ -9,7 +9,7 @@ class IrActionsReport(models.Model):
 
     _inherit = 'ir.actions.report'
 
-    report_type = fields.Selection(selection_add=[('qweb-cpcl', 'CPCL')])
+    report_type = fields.Selection(selection_add=[('qweb-cpcl', 'CPCL')], ondelete={'qweb-cpcl':'set default'})
 
     @staticmethod
     def add_print_qty(cpcl, copies):
@@ -23,10 +23,9 @@ class IrActionsReport(models.Model):
                     el.set('qty', str(copies))
         return cpcl
 
-    @api.multi
-    def render_qweb_cpcl(self, docids, data=None):
+    def _render_qweb_cpcl(self, docids, data=None):
         """Render CPCL/XML report"""
-        html = self.render_qweb_html(docids, data=data)[0]
+        html = self._render_qweb_html(docids, data=data)[0]
         cpcl = etree.fromstring(html)
         for element in cpcl.iter():
             attrs = element.attrib

@@ -2,17 +2,21 @@
 <odoo>
   <data>
 
-    <!-- Printer Test Page report (PDF) -->
-    <report id="action_report_test_page" model="print.printer"
-	    name="print.report_test_page" report_type="qweb-pdf"
-	    file="print.report_test_page"
-	    string="Printer Test Page (PDF)"/>
+    <record id="action_report_test_page" model="ir.actions.report">
+      <field name="name">print.report_test_page</field>
+      <field name="model">print.printer</field>
+      <field name="report_type">qweb-pdf</field>
+      <field name="report_name">print.report_test_page</field>
+      <field name="print_report_name">Printer Test Page (PDF)</field>
+    </record>
 
-    <!-- Printer Test Page report (CPCL) -->
-    <report id="action_report_test_page_cpcl" model="print.printer"
-	    name="print.report_test_page_cpcl" report_type="qweb-cpcl"
-	    file="print.report_test_page_cpcl"
-	    string="Printer Test Page (CPCL)"/>
+    <record id="action_report_test_page_cpcl" model="ir.actions.report">
+      <field name="name">print.report_test_page_cpcl</field>
+      <field name="model">print.printer</field>
+      <field name="report_type">qweb-cpcl</field>
+      <field name="report_name">print.report_test_page_cpcl</field>
+      <field name="print_report_name">Printer Test Page (CPCL)</field>
+    </record>
 
   </data>
 </odoo>

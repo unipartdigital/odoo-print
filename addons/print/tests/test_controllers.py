@@ -31,7 +31,7 @@ class TestController(PrinterHttpCase):
     def test01_logout_ephemeral(self):
         """Test clearing ephemeral printers on logout"""
         self.authenticate("alice", "password")
-        self.printer_inkjet.sudo(self.user_alice).set_user_default()
+        self.printer_inkjet.with_user(self.user_alice).set_user_default()
         self.assertIn(self.printer_inkjet, self.user_alice.printer_ids)
         self.url_open('/web/session/logout')
         self.assertNotIn(self.printer_inkjet, self.user_alice.printer_ids)
@@ -39,7 +39,7 @@ class TestController(PrinterHttpCase):
     def test02_logout_non_ephemeral(self):
         """Test not clearing non-ephemeral printers on logout"""
         self.authenticate("alice", "password")
-        self.printer_laser.sudo(self.user_alice).set_user_default()
+        self.printer_laser.with_user(self.user_alice).set_user_default()
         self.assertIn(self.printer_laser, self.user_alice.printer_ids)
         self.url_open('/web/session/logout')
         self.assertIn(self.printer_laser, self.user_alice.printer_ids)
