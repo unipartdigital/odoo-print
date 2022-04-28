@@ -33,16 +33,16 @@ class IrActionsPrint(models.Model):
         'Print Strategy must be set',
     )]
 
-    def _run_action_print(self, action, eval_context=None): # pylint: disable=unused-argument
+    def _run_action_print(self, eval_context=None): # pylint: disable=unused-argument
         """Print a report using the print strategies for the context object."""
         # get the context object
-        context = action.env.context
+        context = self.env.context
         if 'skip_printing' in context and context['skip_printing']:
             _logger.info('Skipping printing due to context switch')
             return False
         active_model = context['active_model']
         active_id = context['active_id']
-        obj = action.env[active_model].browse(active_id)
+        obj = self.env[active_model].browse(active_id)
         # execute strategies for printing the object
         for strategy in self.env[self.strategy_id.model].strategies(obj):
             if not strategy.enabled():
@@ -55,7 +55,7 @@ class IrActionsPrint(models.Model):
             if records is not None:
                 _logger.info(
                     'executing %s action with strategy %s for %s id %d',
-                    action.state, strategy.name,
+                    self.state, strategy.name,
                     active_model, active_id)
                 printer.spool_report(records.ids, report)
 

@@ -292,7 +292,7 @@ class ActionPrintCase(PrinterCase):
         self.mock_subprocess.Popen.assert_not_called()
         # a single document to be printed when run in the right context
         printer = self.default_printer
-        action.with_context(**self.action_context(printer)).run()
+        action.with_context(**self.action_context(printer), force_report_rendering = True).run()
         self.assertPrintedLpr('-T', ANY)
 
     def test06_two_strategies(self):
