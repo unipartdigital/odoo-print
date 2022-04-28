@@ -2,7 +2,7 @@
 
 import logging
 import os
-from unittest.mock import patch, ANY
+from unittest.mock import patch, ANY, Mock
 from reportlab.pdfgen.canvas import Canvas
 from odoo.exceptions import UserError, ValidationError
 from .common import PrinterCase, HTML_MIMETYPE, PDF_MIMETYPE, XML_MIMETYPE
@@ -133,15 +133,21 @@ class TestPrintPrinter(PrinterCase):
 
     def test_title(self):
         """Test specifying job title"""
+        Report = self.env["ir.actions.report"]
+        report = Report._get_report_from_name('print.report_test_page').with_context(force_report_rendering = True)
+
         self.printer_default.spool_report(self.printer_default.ids,
-                                          'print.report_test_page',
+                                          report,
                                           title="Not a test page")
         self.assertPrintedLpr('-T', "Not a test page")
 
     def test_copies(self):
         """Test specifying number of copies"""
+        Report = self.env["ir.actions.report"]
+        report = Report._get_report_from_name('print.report_test_page').with_context(force_report_rendering = True)
+
         self.printer_default.spool_report(self.printer_default.ids,
-                                          'print.report_test_page', copies=42)
+                                          report, copies=42)
         self.assertPrintedLpr('-T', ANY, '-#', '42')
 
     def test_system_default(self):

@@ -190,7 +190,6 @@ class Printer(models.Model):
             name = report_name
             Report = self.env["ir.actions.report"]
             reports = Report._get_report_from_name(name)
-            reports = reports.with_context(force_report_rendering = True)
             if not reports:
                 reports = self.env.ref(name, raise_if_not_found=False)
             if not reports:

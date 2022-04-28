@@ -12,5 +12,5 @@ class Session(controllers.main.Session):
         """Logout"""
         uid = http.request.session.uid
         if uid is not None:
-            http.request.env['print.printer'].sudo(uid).clear_ephemeral()
+            http.request.env['print.printer'].with_user(uid).clear_ephemeral()
         return super().logout(*args, **kwargs)

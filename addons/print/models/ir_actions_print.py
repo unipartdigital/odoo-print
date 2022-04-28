@@ -33,7 +33,7 @@ class IrActionsPrint(models.Model):
         'Print Strategy must be set',
     )]
 
-    def run_action_print(self, action, eval_context=None): # pylint: disable=unused-argument
+    def _run_action_print(self, action, eval_context=None): # pylint: disable=unused-argument
         """Print a report using the print strategies for the context object."""
         # get the context object
         context = action.env.context

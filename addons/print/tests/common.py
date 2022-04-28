@@ -156,7 +156,7 @@ class PrinterHttpCase(common.HttpCase):
         self.cr.commit()
 
         # Release our thread's cursor lock
-        self.cr.release()
+        self.cr._lock.release()
 
         try:
 
@@ -166,7 +166,7 @@ class PrinterHttpCase(common.HttpCase):
         finally:
 
             # Reacquire our thread's cursor lock
-            self.cr.acquire()
+            self.cr._lock.acquire()
 
             # Flush cache so that we pick up any external changes
             self.env.clear()
