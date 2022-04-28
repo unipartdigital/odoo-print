@@ -77,8 +77,6 @@ class PrinterCase(common.SavepointCase):
         # when tests are run via the "-f" command-line option) to
         # prevent ir.actions.report from committing the assets bundle
         # and hence releasing the savepoint.
-        self.tempdir = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tempdir.cleanup)
         patch_config = patch.dict(config.options, {
             'test_enable': True,
         })
