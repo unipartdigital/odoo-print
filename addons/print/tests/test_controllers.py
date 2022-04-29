@@ -10,30 +10,36 @@ class TestController(PrinterHttpCase):
         super().setUp()
 
         # Create user
-        User = self.env['res.users']
-        self.user_alice = User.create({
-            'name': "Alice",
-            'login': "alice",
-            'password': "password",
-        })
+        User = self.env["res.users"]
+        self.user_alice = User.create(
+            {
+                "name": "Alice",
+                "login": "alice",
+                "password": "password",
+            }
+        )
 
         # Create printers
-        Printer = self.env['print.printer']
-        self.printer_inkjet = Printer.create({
-            'name': "Inkjet",
-            'is_ephemeral': True,
-        })
-        self.printer_laser = Printer.create({
-            'name': "Laser",
-            'is_ephemeral': False,
-        })
+        Printer = self.env["print.printer"]
+        self.printer_inkjet = Printer.create(
+            {
+                "name": "Inkjet",
+                "is_ephemeral": True,
+            }
+        )
+        self.printer_laser = Printer.create(
+            {
+                "name": "Laser",
+                "is_ephemeral": False,
+            }
+        )
 
     def test01_logout_ephemeral(self):
         """Test clearing ephemeral printers on logout"""
         self.authenticate("alice", "password")
         self.printer_inkjet.with_user(self.user_alice).set_user_default()
         self.assertIn(self.printer_inkjet, self.user_alice.printer_ids)
-        self.url_open('/web/session/logout')
+        self.url_open("/web/session/logout")
         self.assertNotIn(self.printer_inkjet, self.user_alice.printer_ids)
 
     def test02_logout_non_ephemeral(self):
@@ -41,9 +47,9 @@ class TestController(PrinterHttpCase):
         self.authenticate("alice", "password")
         self.printer_laser.with_user(self.user_alice).set_user_default()
         self.assertIn(self.printer_laser, self.user_alice.printer_ids)
-        self.url_open('/web/session/logout')
+        self.url_open("/web/session/logout")
         self.assertIn(self.printer_laser, self.user_alice.printer_ids)
 
     def test03_logout_unauthenticated(self):
         """Test logout from a non-authenticated user"""
-        self.url_open('/web/session/logout')
+        self.url_open("/web/session/logout")

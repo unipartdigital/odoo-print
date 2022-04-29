@@ -14,7 +14,7 @@ _logger = logging.getLogger(__name__)
 def _find_lpr_exec():
     """Find usable lpr executable"""
     try:
-        lpr_exec = find_in_path('lpr')
+        lpr_exec = find_in_path("lpr")
         return lpr_exec
     except IOError:
         raise UserError(_("Cannot find lpr executable"))
@@ -23,55 +23,59 @@ def _find_lpr_exec():
 class Printer(models.Model):
     """Printer"""
 
-    _name = 'print.printer'
-    _description = 'Printer'
-    _parent_name = 'group_id'
-    _order = 'parent_path, name'
+    _name = "print.printer"
+    _description = "Printer"
+    _parent_name = "group_id"
+    _order = "parent_path, name"
     _parent_store = True
-    _rec_name = 'full_name'
+    _rec_name = "full_name"
 
-    name = fields.Char(string="Name", index=True, required=True)
-    full_name = fields.Char(string="Full Name", compute='_compute_full_name',
-                            store=True, index=True)
-    barcode = fields.Char(string="Barcode", index=True)
-    queue = fields.Char(string="Print Queue Name", index=True)
-    report_type = fields.Selection([('qweb-pdf', "PDF"),
-                                    ('qweb-html', "HTML"),
-                                    ('qweb-cpcl', "CPCL/XML")],
-                                   string="Report Type", required=True,
-                                   default='qweb-pdf')
-    user_ids = fields.Many2many('res.users', string="Users")
-    is_default = fields.Boolean(string="System Default", index=True,
-                                default=False)
-    is_user_default = fields.Boolean(string="User Default",
-                                     compute='_compute_is_user_default')
+    name = fields.Char(string="Name", required=True)
+    full_name = fields.Char(
+        string="Full Name", compute="_compute_full_name", store=True, 
+    )
+    barcode = fields.Char(string="Barcode", )
+    queue = fields.Char(string="Print Queue Name", )
+    report_type = fields.Selection(
+        [("qweb-pdf", "PDF"), ("qweb-html", "HTML"), ("qweb-cpcl", "CPCL/XML")],
+        string="Report Type",
+        required=True,
+        default="qweb-pdf",
+    )
+    user_ids = fields.Many2many("res.users", string="Users")
+    is_default = fields.Boolean(string="System Default", default=False)
+    is_user_default = fields.Boolean(string="User Default", compute="_compute_is_user_default")
     is_ephemeral = fields.Boolean(string="Clear On Logout", default=False)
-    is_group = fields.Boolean(string="Is it in a Printer Group?", default=False)
-    group_id = fields.Many2one('print.printer', string="Printer Group",
-                               index=True, ondelete='cascade',
-                               domain=[('is_group', '=', True)])
-    child_ids = fields.One2many('print.printer', 'group_id',
-                                string="Grouped Printers")
+    is_group = fields.Boolean(string="Is Printer Group", default=False)
+    group_id = fields.Many2one(
+        "print.printer",
+        string="Printer Group",
+        ondelete="cascade",
+        domain=[("is_group", "=", True)],
+    )
+    child_ids = fields.One2many("print.printer", "group_id", string="Grouped Printers")
     parent_path = fields.Char(index=True)
 
     _sql_constraints = [
-        ('barcode_uniq', 'unique (barcode)', "The Barcode must be unique"),
-        ('single_default',
-         'exclude (is_default with =) where (is_default and group_id is null)',
-         "There must be only one System Default Printer"),
-        ('single_group_default',
-         'exclude (group_id with =) where (is_default)',
-         "There must be only one System Default Printer per group"),
+        ("barcode_uniq", "unique (barcode)", "The Barcode must be unique"),
+        (
+            "single_default",
+            "exclude (is_default with =) where (is_default and group_id is null)",
+            "There must be only one System Default Printer",
+        ),
+        (
+            "single_group_default",
+            "exclude (group_id with =) where (is_default)",
+            "There must be only one System Default Printer per group",
+        ),
     ]
 
-    @api.depends('name', 'group_id.full_name')
+    @api.depends("name", "group_id.full_name")
     def _compute_full_name(self):
         """Calculate full name (including group name(s))"""
         for printer in self:
             if printer.group_id.full_name:
-                printer.full_name = '%s / %s' % (
-                    printer.group_id.full_name, printer.name
-                )
+                printer.full_name = "%s / %s" % (printer.group_id.full_name, printer.name)
             else:
                 printer.full_name = printer.name
 
@@ -80,22 +84,20 @@ class Printer(models.Model):
         for printer in self:
             printer.is_user_default = printer in self.env.user.printer_ids
 
-    @api.constrains('is_group', 'group_id', 'child_ids')
+    @api.constrains("is_group", "group_id", "child_ids")
     def _check_groups(self):
         """Constrain group existence"""
         for printer in self:
             if printer.group_id and not printer.group_id.is_group:
-                raise ValidationError(_("%s is not a printer group") %
-                                      printer.group_id.name)
+                raise ValidationError(_("%s is not a printer group") % printer.group_id.name)
             if printer.child_ids and not printer.is_group:
-                raise ValidationError(_("%s is not a printer group") %
-                                      printer.name)
-    
+                raise ValidationError(_("%s is not a printer group") % printer.name)
+
     @api.model
     def set_default_printer(self):
-        has_default = self.search([('is_default', '=', True)])
+        has_default = self.search([("is_default", "=", True)])
         if not has_default:
-            self.env.ref('print.default_printer').is_default = True
+            self.env.ref("print.default_printer").is_default = True
 
     def printers(self, report_type=None, raise_if_not_found=False):
         """Determine printers to use"""
@@ -123,7 +125,7 @@ class Printer(models.Model):
                     if not p.is_group and (report_type is None or p.report_type == report_type)
                     else (
                         (p.child_ids & self.env.user.printer_ids)
-                        or (p.child_ids.filtered(lambda x: x.is_default))
+                        or (p.child_ids.filtered(lambda pr: pr.is_default))
                     )
                 )
             )
@@ -133,9 +135,7 @@ class Printer(models.Model):
             error_msg = _("No default printer specified")
             if report_type:
                 report_type_label = self.get_report_type_label(report_type)
-                error_msg += (
-                    _(" for %s report format") % report_type_label
-                )
+                error_msg += _(" for %s report format") % report_type_label
 
             raise UserError(error_msg)
 
@@ -149,27 +149,28 @@ class Printer(models.Model):
             # Construct lpr command line
             args = [lpr_exec]
             if printer.queue:
-                args += ['-P', printer.queue]
+                args += ["-P", printer.queue]
             if title is not None:
-                args += ['-T', title]
+                args += ["-T", title]
             if copies > 1:
-                args += ['-#', str(copies)]
+                args += ["-#", str(copies)]
 
             # Pipe document into lpr
-            _logger.info("Printing via %s", ' '.join(args))
-            lpr = subprocess.Popen(args, stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT)
+            _logger.info("Printing via %s", " ".join(args))
+            lpr = subprocess.Popen(
+                args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+            )
             output = lpr.communicate(document)[0]
             if lpr.returncode != 0:
-                raise UserError(_("lpr failed (error code: %s). Message: %s") %
-                                (str(lpr.returncode), output))
+                raise UserError(
+                    _("lpr failed (error code: %s). Message: %s") % (str(lpr.returncode), output)
+                )
 
     def spool(self, document, title=None, copies=1):
         """Spool document to printer"""
 
         # Spool document via OS-dependent spooler mechanism
-        if os.name == 'posix':
+        if os.name == "posix":
             self._spool_lpr(document, title=title, copies=copies)
         else:
             raise UserError(_("Cannot print on OS: %s" % os.name))
@@ -180,7 +181,7 @@ class Printer(models.Model):
         # pylint: disable=too-many-arguments, too-many-locals
 
         if copies <= 0:
-            _logger.info(_('Zero or fewer copies requested, nothing will be printed.'))
+            _logger.info(_("Zero or fewer copies requested, nothing will be printed."))
             return True
 
         # Identify reports
@@ -223,17 +224,17 @@ class Printer(models.Model):
             raise UserError(_("Missing reports of types: %s") % ", ".join(missing_labels))
 
         # CPCL reports require number of copies passed into the template via data
-        cpcl_data = {'copies': copies}
+        cpcl_data = {"copies": copies}
         if data:
             cpcl_data.update(data)
 
         # Generate reports for each required report type
         documents = {
-            x.report_type: (
-                ("%s %s" % (x.name, str(docids))) if title is None else title,
-                x._render(docids, cpcl_data if x.report_type == "qweb-cpcl" else data)[0],
+            r.report_type: (
+                ("%s %s" % (r.name, str(docids))) if title is None else title,
+                r._render(docids, cpcl_data if r.report_type == "qweb-cpcl" else data)[0],
             )
-            for x in reports
+            for r in reports
         }
 
         # Send appropriate report to each printer
@@ -246,55 +247,55 @@ class Printer(models.Model):
     @api.model
     def test_page_report(self):
         """Get printer test pages"""
-        Report = self.env['ir.actions.report']
-        return Report.search([
-            ('model', '=', 'print.printer'),
-            ('report_name', '=like', 'print.%'),
-        ])
+        Report = self.env["ir.actions.report"]
+        return Report.sudo().search(
+            [
+                ("model", "=", "print.printer"),
+                ("report_name", "=like", "print.%"),
+            ]
+        )
 
     def spool_test_page(self):
         """Print test page"""
         for printer in self.printers(raise_if_not_found=True):
-            printer.spool_report(printer.ids, self.test_page_report(),
-                                 title="Test page")
+            printer.spool_report(printer.ids, self.test_page_report(), title="Test page")
         return True
 
     def clear_user_default(self):
         """Clear as user default printer"""
         self.env.user.printer_ids -= self
-        return {'type': 'ir.actions.client', 'tag': 'reload'}
+        return {"type": "ir.actions.client", "tag": "reload"}
 
     def clear_system_default(self):
         """Clear as system default printer"""
-        self.write({'is_default': False})
-        return {'type': 'ir.actions.client', 'tag': 'reload'}
-    
+        self.write({"is_default": False})
+        return {"type": "ir.actions.client", "tag": "reload"}
+
     def set_user_default(self):
         """Set as user default printer (within group, if applicable)"""
         self.ensure_one()
         self.env.user.printer_ids.filtered(
-            lambda x: x.group_id == self.group_id and x.report_type == self.report_type
+            lambda p: p.group_id == self.group_id and p.report_type == self.report_type
         ).with_env(self.env).clear_user_default()
         self.env.user.printer_ids += self
-        return {'type': 'ir.actions.client', 'tag': 'reload'}
+        return {"type": "ir.actions.client", "tag": "reload"}
 
     def set_system_default(self):
         """Set as system default printer (within group, if applicable)"""
         self.ensure_one()
-        self.search([
-            ('is_default', '=', True),
-            ('group_id', '=', self.group_id.id)
-        ]).clear_system_default()
+        self.search(
+            [("is_default", "=", True), ("group_id", "=", self.group_id.id)]
+        ).clear_system_default()
         self.is_default = True
-        return {'type': 'ir.actions.client', 'tag': 'reload'}
+        return {"type": "ir.actions.client", "tag": "reload"}
 
     @api.model
     def clear_ephemeral(self):
         """Clear all ephemeral user default printers"""
-        self.env.user.printer_ids.filtered(
-            lambda x: x.is_ephemeral
-        ).with_env(self.env).clear_user_default()
-        return {'type': 'ir.actions.client', 'tag': 'reload'}
+        self.env.user.printer_ids.filtered(lambda p: p.is_ephemeral).with_env(
+            self.env
+        ).clear_user_default()
+        return {"type": "ir.actions.client", "tag": "reload"}
 
     def get_report_type_label(self, report_type):
         """Get the label of the supplied report type code"""
