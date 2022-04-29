@@ -67,6 +67,8 @@ class PrintStrategy(models.Model):
     """
     _name = 'print.strategy'
 
+    _description = 'Print strategy'
+
     name = fields.Char(required=True)
 
     # the report to render for each selected record

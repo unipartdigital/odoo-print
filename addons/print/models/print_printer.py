@@ -46,7 +46,7 @@ class Printer(models.Model):
     is_user_default = fields.Boolean(string="User Default",
                                      compute='_compute_is_user_default')
     is_ephemeral = fields.Boolean(string="Clear On Logout", default=False)
-    is_group = fields.Boolean(string="Printer Group", default=False)
+    is_group = fields.Boolean(string="Is it in a Printer Group?", default=False)
     group_id = fields.Many2one('print.printer', string="Printer Group",
                                index=True, ondelete='cascade',
                                domain=[('is_group', '=', True)])
