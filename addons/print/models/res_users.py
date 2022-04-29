@@ -8,13 +8,13 @@ from odoo.exceptions import ValidationError
 class User(models.Model):
     """Extend ``res.user`` to include a concept of default printer"""
 
-    _inherit = 'res.users'
+    _inherit = "res.users"
 
-    printer_ids = fields.Many2many('print.printer', string="Default Printers")
+    printer_ids = fields.Many2many("print.printer", string="Default Printers")
 
     def get_printer(self, report_type=None):
         """
-        Identify and return user default ungrouped printer (for backwards compatibility) 
+        Identify and return user default ungrouped printer (for backwards compatibility)
         for report type (if specified)
         """
         self.ensure_one()
@@ -24,7 +24,7 @@ class User(models.Model):
         # If multiple printers are found, return the first one
         return printer[:1]
 
-    @api.constrains('printer_ids')
+    @api.constrains("printer_ids")
     def _check_printer_ids(self):
         """Constrain user to having one default printer per group, for each report type"""
         for user in self:
