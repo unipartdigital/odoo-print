@@ -12,6 +12,7 @@ from odoo.modules.module import get_resource_from_path, get_resource_path
 from odoo.tools import config, mute_logger
 from odoo.tools.mimetypes import guess_mimetype
 from odoo.tests import common, tagged
+from odoo.http import root
 
 MOCK_LPR = 'MOCK_LPR'
 HTML_MIMETYPE = guess_mimetype(b'\n      \n        \n        <!DOCTYPE html>')
@@ -20,7 +21,7 @@ PDF_MIMETYPE = 'application/pdf'
 
 
 @tagged("-at_install", "post_install")
-class PrinterCase(common.SavepointCase):
+class PrinterCase(common.HttpSavepointCase):
     """Base test case for printing"""
 
     @classmethod
@@ -47,6 +48,12 @@ class PrinterCase(common.SavepointCase):
         cls.safety = "print.default_test_print"
         # Enable default print safety for tests
         config.misc["print"] = {"default_test_print": 1}
+
+        # Configure the static files before trying to access them. 
+        # This will avoid recieving WARNING messages from the logger
+        # when it goes to request the static files only to find they haven't
+        # been configured. 
+        root.load_addons()
 
     def setUp(self):
         super().setUp()

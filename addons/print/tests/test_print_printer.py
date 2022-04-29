@@ -60,6 +60,8 @@ class TestPrintPrinter(PrinterCase):
             'name': "Bob",
             'login': 'bob',
         })
+        
+        
 
     def print_test_report(self, copies=1):
         self.printer_dotmatrix.barcode = 'DOTMATRIX'
