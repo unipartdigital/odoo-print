@@ -252,7 +252,9 @@ class TestPrintPrinter(PrinterCase):
 
     def test_xmlid(self):
         """Test ability to use XML ID to identify a report"""
-        self.printer_default.spool_report(self.printer_default.ids, "print.action_report_test_page_pdf")
+        self.printer_default.spool_report(
+            self.printer_default.ids, "print.action_report_test_page_pdf"
+        )
         self.assertPrintedLpr("-T", ANY)
 
     def test_non_pdf(self):
@@ -442,7 +444,7 @@ class TestPrintPrinter(PrinterCase):
                         "INFO:odoo.addons.print.models.print_printer:Zero or fewer copies requested, nothing will be printed."
                     ],
                 )
-    
+
     def test_multiple_reports_of_same_report_type_get_printed(self):
         """
         Test there are 5 calls to the printer when there are multiple reports with the same
@@ -451,6 +453,7 @@ class TestPrintPrinter(PrinterCase):
         IrActionReport = self.env["ir.actions.report"]
         pdf_reports = IrActionReport.search([("report_type", "=", "qweb-pdf")])
         pdf_reports = pdf_reports.with_context(force_report_rendering=True)
-        self.printer_default.with_context(force_report_rendering=True).spool_report(self.printer_default.ids, pdf_reports)
-        self.assertPrintedLprMulti(["-T", ANY],["-T", ANY] ,["-T", ANY],["-T", ANY],["-T", ANY])
-        
+        self.printer_default.with_context(force_report_rendering=True).spool_report(
+            self.printer_default.ids, pdf_reports
+        )
+        self.assertPrintedLprMulti(["-T", ANY], ["-T", ANY], ["-T", ANY], ["-T", ANY], ["-T", ANY])
