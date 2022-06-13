@@ -100,7 +100,14 @@ class Printer(models.Model):
             self.env.ref("print.default_printer").is_default = True
 
     def printers(self, report_type=None, raise_if_not_found=False):
-        """Determine printers to use"""
+        """
+        Purpose: Determine printers to use for a given report type. If no printers are found
+        for the given report type, and raise_if_not_found flag is set, then raise an error message. 
+        If called on any emtpy print.printer() recordset this method will return the system default printer. If
+        called on a non-empty print.printer() recordset this method will return suitable printers for a given report
+        type.
+        Returns: print.printer()
+        """
         if self:
             # Printers are specified in self
             printers = self
@@ -177,52 +184,26 @@ class Printer(models.Model):
         return True
 
     def spool_report(self, docids, report_name, data=None, title=None, copies=1):
-        """Spool report to printer"""
+        """
+        Purpose: This function will render and spool the report to the printer that it
+        is called on, as long as the printer has a report_type attribute matching that of the desired 
+        report.
+        Return: boolean
+        """
         # pylint: disable=too-many-arguments, too-many-locals
 
         if copies <= 0:
             _logger.info(_("Zero or fewer copies requested, nothing will be printed."))
             return True
 
-        # Identify reports
-        if isinstance(report_name, models.BaseModel):
-            reports = report_name
-        else:
-            name = report_name
-            Report = self.env["ir.actions.report"]
-            reports = Report._get_report_from_name(name)
-            if not reports:
-                reports = self.env.ref(name, raise_if_not_found=False)
-            if not reports:
-                raise UserError(_("Undefined report %s") % name)
+        reports = self._fetch_reports_for_printing(report_name)
 
-        # Identify required report types
-        report_types = set(reports.mapped("report_type"))
+        required_report_types = set(reports.mapped("report_type"))
 
-        # If there is only 1 report type to print out then raise an error if printer not found,
-        # otherwise continue checking for other report types
-        printer_raise_if_not_found = len(report_types) == 1
+        printers_by_report_type = self._assign_printers_to_report(required_report_types)
 
-        # Identify printer to use for each report type, only include report type in dictionary
-        # if a printer is identified
-        printers_by_report_type = {
-            rt: p
-            for rt in report_types
-            for p in (self.printers(raise_if_not_found=printer_raise_if_not_found, report_type=rt))
-            if p
-        }
-
-        if printers_by_report_type:
-            required_types = set(printers_by_report_type.keys())
-            missing = required_types - report_types
-        else:
-            missing = report_types
-
-        if missing:
-            # Get labels of missing report types from selection list
-            missing_labels = [self.get_report_type_label(rt) for rt in missing]
-            raise UserError(_("Missing reports of types: %s") % ", ".join(missing_labels))
-
+        self._check_every_report_type_has_printer(printers_by_report_type, required_report_types)
+        
         # CPCL reports require number of copies passed into the template via data
         cpcl_data = {"copies": copies}
         if data:
@@ -243,22 +224,81 @@ class Printer(models.Model):
             printer.spool(document, title=title, copies=copies)
 
         return True
+    
+    def _fetch_reports_for_printing(self, report_name):
+        """
+        Purpose: If the report name is a string, fetch the report from the data. If it is a
+        recordset return the recordset.
+        Return: ir.actions.report()
+        """
+        if isinstance(report_name, models.BaseModel):
+            reports = report_name
+        else:
+            name = report_name
+            Report = self.env["ir.actions.report"]
+            reports = Report._get_report_from_name(name)
+            if not reports:
+                reports = self.env.ref(name, raise_if_not_found=False)
+            if not reports:
+                raise UserError(_("Undefined report %s") % name)
+        return reports
+    
+    def _assign_printers_to_report(self, required_report_types):
+        """
+        Purpose: Assign each printer in self (or system default if self is empty) to a given 
+        report type. 
+        Return: dict{ ir.action.report() : print.printer() }
+        """
+        printer_raise_if_not_found = len(required_report_types) == 1
+        printers_by_report_type = {
+            rt: p
+            for rt in required_report_types
+            for p in (self.printers(rt, printer_raise_if_not_found))
+            if p
+        }
+        return printers_by_report_type
+    
+    def _check_every_report_type_has_printer(self, printers_by_report_type, required_report_types):
+        """
+        Purpose: Check which report types are missing, if any are missing raise an error. Must raise an
+        error as can't print the given report type.
+        Return: Boolean 
+        """
+        if printers_by_report_type:
+            report_types_found = set(printers_by_report_type.keys())
+            missing = required_report_types - report_types_found 
+        else:
+            missing = required_report_types
+
+        if missing:
+            missing_labels = [self.get_report_type_label(rt) for rt in missing]
+            raise UserError(_("Missing reports of types: %s") % ", ".join(missing_labels))
+        
+        return True
 
     @api.model
-    def test_page_report(self):
-        """Get printer test pages"""
+    def test_page_report(self, report_type):
+        """
+        Purpose: Search for the printer report test pages.
+        Return: ir.actions.report() 
+        """
         Report = self.env["ir.actions.report"]
+        test_page = f'print.report_test_page_{report_type}'
         return Report.sudo().search(
             [
                 ("model", "=", "print.printer"),
-                ("report_name", "=like", "print.%"),
+                ("report_name", "=", test_page),
             ]
         )
 
     def spool_test_page(self):
-        """Print test page"""
+        """
+        Purpose: Print test page for all printers in self.
+        Return: boolean
+        """
         for printer in self.printers(raise_if_not_found=True):
-            printer.spool_report(printer.ids, self.test_page_report(), title="Test page")
+            report_type_string = printer.report_type.replace("qweb-", "")
+            printer.spool_report(printer.ids, self.test_page_report(report_type_string), title="Test page")
         return True
 
     def clear_user_default(self):
