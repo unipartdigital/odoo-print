@@ -228,7 +228,7 @@ class ActionPrintCase(PrinterCase):
     @property
     def default_report(self):
         """Return the default report"""
-        return self.env.ref("print.action_report_test_page")
+        return self.env.ref("print.action_report_test_page_pdf")
 
     @property
     def default_printer(self):

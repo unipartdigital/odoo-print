@@ -151,7 +151,7 @@ class TestPrintPrinter(PrinterCase):
     def test_title(self):
         """Test specifying job title"""
         Report = self.env["ir.actions.report"]
-        report = Report._get_report_from_name("print.report_test_page").with_context(
+        report = Report._get_report_from_name("print.report_test_page_pdf").with_context(
             force_report_rendering=True
         )
 
@@ -161,7 +161,7 @@ class TestPrintPrinter(PrinterCase):
     def test_copies(self):
         """Test specifying number of copies"""
         Report = self.env["ir.actions.report"]
-        report = Report._get_report_from_name("print.report_test_page").with_context(
+        report = Report._get_report_from_name("print.report_test_page_pdf").with_context(
             force_report_rendering=True
         )
 
@@ -252,16 +252,16 @@ class TestPrintPrinter(PrinterCase):
 
     def test_xmlid(self):
         """Test ability to use XML ID to identify a report"""
-        self.printer_default.spool_report(self.printer_default.ids, "print.action_report_test_page")
+        self.printer_default.spool_report(self.printer_default.ids, "print.action_report_test_page_pdf")
         self.assertPrintedLpr("-T", ANY)
 
     def test_non_pdf(self):
         """Test ability to send non-PDF data to printer"""
         Report = self.env["ir.actions.report"]
-        report = Report._get_report_from_name("print.report_test_page")
+        report = Report._get_report_from_name("print.report_test_page_pdf")
         report.report_type = "qweb-html"
         self.printer_default.report_type = "qweb-html"
-        self.printer_default.spool_test_page()
+        self.printer_default.spool_report(self.printer_default.ids, report)
         self.assertPrintedLpr("-T", ANY, mimetype=HTML_MIMETYPE)
 
     def test_cpcl(self):
@@ -271,7 +271,7 @@ class TestPrintPrinter(PrinterCase):
 
     def test_spool_by_record(self):
         """Test spooling ir.actions.report record (rather than report name)"""
-        report = self.env.ref("print.action_report_test_page")
+        report = self.env.ref("print.action_report_test_page_pdf")
         report = report.with_context(force_report_rendering=True)
         self.printer_default.spool_report(self.printer_default.ids, report)
         self.assertPrintedLpr("-T", ANY)
@@ -432,7 +432,7 @@ class TestPrintPrinter(PrinterCase):
                     "odoo.addons.print.models.print_printer", level=logging.INFO
                 ) as cm:
                     self.printer_default.spool_report(
-                        self.printer_default.ids, "print.report_test_page", copies=num_copies
+                        self.printer_default.ids, "print.report_test_page_pdf", copies=num_copies
                     )
                     self.mock_subprocess.Popen.assert_not_called()
                     self.mock_subprocess.Popen.reset_mock()
