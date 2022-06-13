@@ -3,6 +3,7 @@
 import logging
 import os
 import subprocess
+from collections import defaultdict
 from odoo import api, fields, models
 from odoo.tools.translate import _
 from odoo.tools.misc import find_in_path
@@ -209,19 +210,17 @@ class Printer(models.Model):
         if data:
             cpcl_data.update(data)
 
-        # Generate reports for each required report type
-        documents = {
-            r.report_type: (
-                ("%s %s" % (r.name, str(docids))) if title is None else title,
-                r._render(docids, cpcl_data if r.report_type == "qweb-cpcl" else data)[0],
-            )
-            for r in reports
-        }
+        # Generate dictionary with {report type: [(title, *rendered_document*), ...]} for each report type
+        documents = defaultdict(list)
+        for report in reports: 
+            documents[report.report_type].append((
+                ("%s %s" % (report.name, str(docids))) if title is None else title,
+                report._render(docids, cpcl_data if report.report_type == "qweb-cpcl" else data)[0],))
 
-        # Send appropriate report to each printer
+        # Send rendered doc for each report type to printer
         for report_type, printer in printers_by_report_type.items():
-            title, document = documents[report_type]
-            printer.spool(document, title=title, copies=copies)
+            for title, document in documents[report_type]:
+                printer.spool(document, title=title, copies=copies)
 
         return True
     
