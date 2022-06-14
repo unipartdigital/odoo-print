@@ -198,7 +198,6 @@ class Printer(models.Model):
         reports = self._fetch_reports_for_printing(report_name)
         required_report_types = set(reports.mapped("report_type"))
         printers_by_report_type = self._assign_printers_to_report(required_report_types)
-        self._check_every_report_type_has_printer(printers_by_report_type, required_report_types)
 
         # CPCL reports require number of copies passed into the template via data
         cpcl_data = {"copies": copies}
@@ -209,9 +208,8 @@ class Printer(models.Model):
         documents = defaultdict(list)
         for report in reports:
             doc_title = title or ("%s %s" % (report.name, str(docids)))
-            rendered_doc = report._render(
-                docids, cpcl_data if report.report_type == "qweb-cpcl" else data
-            )[0]
+            report_data = cpcl_data if report.report_type == "qweb-cpcl" else data
+            rendered_doc = report._render(docids, report_data)[0]
             documents[report.report_type].append((doc_title, rendered_doc))
 
         # Send rendered doc for each report type to printer
@@ -242,35 +240,17 @@ class Printer(models.Model):
     def _assign_printers_to_report(self, required_report_types):
         """
         Assign each printer in self (or system default if self is empty) to a given
-        report type.
+        report type. If the printer is missing for a given report type, then the report
+        type can't be printed, and an Error must be raised.
         Return: dict{ ir.action.report() : print.printer() }
         """
-        printer_raise_if_not_found = len(required_report_types) == 1
         printers_by_report_type = {
             rt: p
             for rt in required_report_types
-            for p in (self.printers(rt, printer_raise_if_not_found))
+            for p in (self.printers(rt, True))
             if p
         }
         return printers_by_report_type
-
-    def _check_every_report_type_has_printer(self, printers_by_report_type, required_report_types):
-        """
-        Check which report types are missing, if any are missing raise an error. Must raise an
-        error as can't print the given report type.
-        Return: Boolean
-        """
-        if printers_by_report_type:
-            report_types_found = set(printers_by_report_type.keys())
-            missing = required_report_types - report_types_found
-        else:
-            missing = required_report_types
-
-        if missing:
-            missing_labels = [self.get_report_type_label(rt) for rt in missing]
-            raise UserError(_("Missing reports of types: %s") % ", ".join(missing_labels))
-
-        return True
 
     @api.model
     def test_page_report(self, report_type):
