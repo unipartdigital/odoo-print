@@ -371,7 +371,7 @@ class TestPrintPrinter(PrinterCase):
         self.printer_default.report_type = "qweb-cpcl"
         with self.assertRaises(UserError):
             self.printer_default.spool_report(
-                self.printer_default.ids, "print.action_report_test_page"
+                self.printer_default.ids, "print.action_report_test_page_pdf"
             )
 
     def test_ephemeral(self):
