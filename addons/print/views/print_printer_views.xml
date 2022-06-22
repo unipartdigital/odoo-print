@@ -124,7 +124,7 @@
 	</p>
 	<p>
 	  Backend processes may print documents and reports directly
-	  to printers connected to the Odoo server.
+	  to printers connected to the server.
 	</p>
       </field>
     </record>
@@ -145,7 +145,7 @@
 	</p>
 	<p>
 	  Backend processes may print documents and reports directly
-	  to printers connected to the Odoo server.
+	  to printers connected to the server.
 	</p>
       </field>
     </record>
