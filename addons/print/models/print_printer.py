@@ -179,7 +179,7 @@ class Printer(models.Model):
         if os.name == "posix":
             self._spool_lpr(document, title=title, copies=copies)
         else:
-            raise UserError(_("Cannot print on OS: %s" % os.name))
+            raise UserError(_("Cannot print on OS: %s") % (os.name))
         return True
 
     def spool_report(self, docids, report_name, data=None, title=None, copies=1):
