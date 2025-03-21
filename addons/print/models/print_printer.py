@@ -36,7 +36,7 @@ class Printer(models.Model):
     barcode = fields.Char(string="Barcode")
     queue = fields.Char(string="Print Queue Name")
     report_type = fields.Selection(
-        [("qweb-pdf", "PDF"), ("qweb-html", "HTML"), ("qweb-cpcl", "CPCL/XML")],
+        [("qweb-pdf", "PDF"), ("qweb-html", "HTML"), ("qweb-cpcl", "CPCL/XML"), ("qweb-text", "ZPL")],
         string="Report Type",
         required=True,
         default="qweb-pdf",
