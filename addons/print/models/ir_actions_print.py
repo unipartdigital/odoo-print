@@ -45,7 +45,12 @@ class IrActionsPrint(models.Model):
             return False
         active_model = context["active_model"]
         active_id = context["active_id"]
-        obj = self.env[active_model].browse(active_id)
+        multiple_ids = context.get("multiple_ids", False)
+        active_ids = context.get("active_ids", None)
+        if multiple_ids and active_ids:
+            obj = self.env[active_model].browse(active_ids)
+        else:
+            obj = self.env[active_model].browse(active_id)
         # execute strategies for printing the object
         for strategy in self.env[self.strategy_id.model].strategies(obj):
             if not strategy.enabled():
@@ -57,11 +62,11 @@ class IrActionsPrint(models.Model):
             # print
             if records is not None:
                 _logger.info(
-                    "executing %s action with strategy %s for %s id %d",
+                    "executing %s action with strategy %s for %s id %s",
                     self.state,
                     strategy.name,
                     active_model,
-                    active_id,
+                    str(active_id) if not multiple_ids else str(active_ids),
                 )
                 printer.spool_report(records.ids, report)
                 # Log a note in the audit trail
