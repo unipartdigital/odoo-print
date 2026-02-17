@@ -279,9 +279,22 @@ class Printer(models.Model):
             )
         return True
 
+    @api.constrains("user_ids")
+    def _constrain_clear_group(self):
+        """Clear group when the user is removed from a printer"""
+        if self.group_id and self not in self.env.user.printer_ids:
+            self.clear_group_if_ephemeral()
+
+    def clear_group_if_ephemeral(self):
+        """Clear the groups of the printers in self that are ephemeral and the user has no more printers in the group"""
+        for group in self.group_id:
+            if group.is_ephemeral and not group.child_ids & self.env.user.printer_ids:
+                self.env.user.printer_ids -= group
+
     def clear_user_default(self):
         """Clear as user default printer"""
         self.env.user.printer_ids -= self
+        self.clear_group_if_ephemeral()
         return {"type": "ir.actions.client", "tag": "reload"}
 
     def clear_system_default(self):
