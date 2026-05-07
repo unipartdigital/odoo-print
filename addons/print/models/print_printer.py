@@ -7,6 +7,7 @@ from collections import defaultdict
 from odoo import api, fields, models
 from odoo.tools.translate import _
 from odoo.tools.misc import find_in_path
+from odoo.tools import config
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -340,3 +341,12 @@ class Printer(models.Model):
         if report_type:
             system_default_args.append(("report_type", "=", report_type))
         return self.search(system_default_args, limit=1)
+
+    def printing_enabled(self):
+        """Check if printing is enabled."""
+        if not config.get_misc("print", "general"):
+            _logger.warning(
+                "Printing disabled, enable by configuring safety print.general in config file.",
+            )
+            return False
+        return True
