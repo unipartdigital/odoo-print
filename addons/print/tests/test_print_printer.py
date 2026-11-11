@@ -450,8 +450,13 @@ class TestPrintPrinter(PrinterCase):
         Test there are 5 calls to the printer when there are multiple reports with the same
         report type
         """
-        IrActionReport = self.env["ir.actions.report"]
-        pdf_reports = IrActionReport.search([("report_type", "=", "qweb-pdf")])
+        # Use copies of the test page report, rather than every PDF
+        # report in the database, which would depend on the installed
+        # modules and need their records to exist
+        test_page = self.env.ref("print.action_report_test_page_pdf")
+        pdf_reports = test_page
+        for _i in range(4):
+            pdf_reports |= test_page.copy()
         pdf_reports = pdf_reports.with_context(force_report_rendering=True)
         self.printer_default.with_context(force_report_rendering=True).spool_report(
             self.printer_default.ids, pdf_reports
